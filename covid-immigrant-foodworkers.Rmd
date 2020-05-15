@@ -1,0 +1,81 @@
+---
+title: "covid-immigrant-foodworkers"
+author: "Joe Yerardi"
+date: "5/7/2020"
+output: html_document
+---
+
+```{r setup, include = F}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = F}
+library(dplyr)
+library(ipumsr)
+library(stringr)
+library(tidyr)
+```
+
+
+```{r, echo = F}
+setwd("C:/Users/joeye/Desktop/covid-immigrant-foodworkers/")
+```
+
+```{r import data, echo = F}
+read.table("data/usa_00011.dat", fill = T)
+
+ddi <- read_ipums_ddi("data/usa_00011.xml")
+data <- read_ipums_micro(ddi)
+```
+
+```{r, echo = F}
+View(data %>% 
+       filter(IND == "170") %>% 
+       group_by(IND) %>% 
+       summarize(sum(PERWT)))
+
+citizen_by_ind_occ <- data %>% 
+  filter(INDNAICS == "111" | str_detect(INDNAICS, "^311")) %>% 
+  group_by(INDNAICS, OCCSOC, CITIZEN) %>% 
+  summarize(num_employees = sum(PERWT)) %>% 
+  pivot_wider(id_cols = c(INDNAICS, OCCSOC),
+              names_from = CITIZEN,
+              values_from = num_employees,
+              names_prefix = "citizen_") %>% 
+  mutate(citizen_0 = replace_na(citizen_0, 0),
+         citizen_1 = replace_na(citizen_1, 0),
+         citizen_2 = replace_na(citizen_2, 0),
+         citizen_3 = replace_na(citizen_3, 0),
+         native_citizen = citizen_0 + citizen_1,
+         native_citizen_pct = round(native_citizen / (native_citizen + citizen_2 + citizen_3) * 100, digits = 0),
+         naturalized_citizen_pct = round(citizen_2 / (native_citizen + citizen_2 + citizen_3) * 100, digits = 0),
+         non_citizen_pct = round(citizen_3 / (native_citizen + citizen_2 + citizen_3) * 100, digits = 0),
+         total_employees = native_citizen + citizen_2 + citizen_3) %>% 
+  select(industry = INDNAICS,
+         occupation = OCCSOC,
+         total_employees,
+         native_citizen,
+         naturalized_citizen = "citizen_2",
+         non_citizen = "citizen_3",
+         native_citizen_pct,
+         naturalized_citizen_pct,
+         non_citizen_pct)
+
+View(data %>% 
+       filter(INDNAICS == "111") %>% 
+                group_by(INDNAICS) %>% 
+                summarize(sum(PERWT)))
+
+View(citizen_by_ind_occ %>% 
+       filter(industry == "311M2"))
+
+View(citizen_by_ind_occ %>% 
+       filter(industry == "311M2") %>% 
+       group_by(industry) %>% 
+       summarize(sum(total_employees)))
+```
+
+
+```{r}
+```
+
