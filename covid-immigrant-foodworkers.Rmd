@@ -24,7 +24,7 @@ setwd(work_dir)
 ```
 
 ```{r import data, include = F}
-# IPUMS
+# IPUMS (2014-18 ACS; population = 16 and older; employed - at work, employed - not at work)
 ipums_data <- read.table("data/usa_00014.dat")
 ddi <- read_ipums_ddi("data/usa_00014.xml")
 ipums_data <- read_ipums_micro(ddi)
@@ -141,6 +141,20 @@ View(ipums_data_working %>%
 # Select all industry-occupation combinations that have at least twice the foreign-born population of the country at large and at least 1,000 employees nationally.
 high_immigrant_industry_occupation_combos <- citizenship_by_ind_occ %>% 
   filter(total_employees >= 1000 & naturalized_citizen_pct + non_citizen_pct > 34)
+
+# Exclude the occupations we've decided we're not interested in
+excluded_occupations = list("CLN-Other Grounds Maintenance Workers",
+                            "FFF-AGRICULTURAL INSPECTORS",
+                            "MGR-Other Managers",
+                            "OFF-Shipping, Receiving, And Inventory Clerks",
+                            "CLN-MAIDS AND HOUSEKEEPING CLEANERS",
+                            "OFF-WEIGHERS, MEASURERS, CHECKERS, AND SAMPLERS, RECORDKEEPING",
+                            "TRN-CLEANERS OF VEHICLES AND EQUIPMENT")
+
+# Exclude the occupations we've decided we're not interested in
+high_immigrant_industry_occupation_combos <- high_immigrant_industry_occupation_combos %>% 
+  filter(!occupation %in% excluded_occupations) %>% 
+  arrange(total_employees)
 ```
 
 ```{r}
@@ -167,9 +181,9 @@ View(high_immigrant_ind_occ_combos_records_pumas %>%
 ```{r group the data}
 # Group the data by citizenship, ethnicity, industry, occupation and PUMA
 citizenship_ethnicity_by_ind_occ_puma <- high_immigrant_ind_occ_combos_records_pumas %>% 
-  group_by(state, puma, industry, occupation, citizenship_code, ethnicity_code) %>% 
+  group_by(state, puma, industry, industry_code, occupation, occupation_code, citizenship_code, ethnicity_code) %>% 
   summarize(num_employees = sum(PERWT)) %>% 
-  pivot_wider(id_cols = c(state, puma, industry, occupation),
+  pivot_wider(id_cols = c(state, puma, industry, industry_code, occupation, occupation_code),
               names_from = c(citizenship_code, ethnicity_code),
               values_from = num_employees,
               names_prefix = "col_") %>% 
@@ -190,7 +204,9 @@ citizenship_ethnicity_by_ind_occ_puma <- high_immigrant_ind_occ_combos_records_p
   select(state,
          puma,
          industry,
+         industry_code,
          occupation,
+         occupation_code,
          total_employees,
          native_citizen_non_hispanic,
          native_citizen_hispanic,
@@ -217,34 +233,4 @@ View(citizenship_ethnicity_by_ind_occ_puma %>%
 
 # Export the data
 write_csv(citizenship_ethnicity_by_ind_occ_puma, "data/exported/citizenship_ethnicity_by_ind_occ_puma.csv")
-```
-
-
-national_citizen_by_industry <- industries_filtered %>% 
-  group_by(industry, citizenship) %>% 
-  summarize(num_employees = sum(PERWT)) %>% 
-  pivot_wider(id_cols = c(industry),
-              names_from = citizenship,
-              values_from = num_employees) %>% 
-  rename(native_born = "N/A",
-         born_abroad_american_parents = "Born abroad of American parents",
-         naturalized_citizen = "Naturalized citizen",
-         non_citizen = "Not a citizen") %>% 
-  mutate(native_born = replace_na(native_born, 0),
-         born_abroad_american_parents = replace_na(born_abroad_american_parents, 0),
-         naturalized_citizen = replace_na(naturalized_citizen, 0),
-         non_citizen = replace_na(non_citizen, 0),
-         native_citizen = native_born + born_abroad_american_parents,
-         native_citizen_pct = round(native_citizen / (native_citizen + naturalized_citizen + non_citizen) * 100, digits = 0),
-         naturalized_citizen_pct = round(naturalized_citizen / (native_citizen + naturalized_citizen + non_citizen) * 100, digits = 0),
-         non_citizen_pct = round(non_citizen / (native_citizen + naturalized_citizen + non_citizen) * 100, digits = 0),
-         total_employees = native_citizen + naturalized_citizen + non_citizen) %>% 
-  select(industry,
-         total_employees,
-         native_citizen,
-         naturalized_citizen,
-         non_citizen,
-         native_citizen_pct,
-         naturalized_citizen_pct,
-         non_citizen_pct)
 ```
