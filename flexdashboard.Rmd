@@ -1,0 +1,136 @@
+---
+title: "Coronavirus Immigrant Foodworkers Crosstalk"
+author: "Joe Yerardi"
+date: "6/19/2020"
+output:
+  flexdashboard::flex_dashboard:
+    theme: paper
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+# setting up R Markdown options
+
+# We want to hide the code and only see the results
+knitr::opts_chunk$set(echo = F)
+
+# We don't want to see any warnings from our code
+knitr::opts_chunk$set(warning = F)
+
+# We don't want to see any messages
+knitr::opts_chunk$set(message = F)
+```
+
+```{r install_packages}
+# install.packages("flexdashboard")
+# This function checks if you don't have the correct packages installed yet
+# If not, it will install it for you
+packages <- c("crosstalk", "DT", "flexdashboard", "rgdal", "geojsonsf", "leaflet", "sf", "tidyverse")
+
+if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
+  install.packages(setdiff(packages, rownames(installed.packages())), repos = "http://cran.us.r-project.org")
+}
+
+library("crosstalk")
+library("DT")
+library("flexdashboard")
+library("geojsonsf")
+library("leaflet")
+library("rgdal")
+library("sf")
+library("tidyverse")
+```
+
+```{r set global variables}
+# Set working directory
+setwd("C:/Users/joeye/Desktop/covid-immigrant-foodworkers/")
+```
+
+```{r load_and_clean_data}
+
+citizenship_ethnicity_by_puma <- evictions_tracts_joined <-  read_sf("data/exported/citizenship_ethnicity_by_puma.json")
+
+# Remove names from the geometry column
+names(st_geometry(citizenship_ethnicity_by_puma)) = NULL
+
+data <- SharedData$new(citizenship_ethnicity_by_puma)
+```
+
+Distribution of foreign-born workers in food-related industries {data-icon="ion-stats-bars"}
+=====================================  
+
+Column {data-width=200}
+-------------------------------------
+
+### Filters
+
+```{r filter_section}
+filter_select(
+  id = "state",
+  label = "State",
+  sharedData = data,
+  group = ~state
+)
+filter_select(
+  id = "puma",
+  label = "PUMA",
+  sharedData = data,
+  group = ~puma
+)
+bscols(
+  filter_slider(
+    id = "pct_total_foreign",
+    label = "Percent Foreign",
+    sharedData = data,
+    column = ~pct_total_foreign,
+    step = 5,
+    round = TRUE,
+    sep = "",
+    ticks = FALSE
+  )
+)
+bscols(
+  filter_slider(
+    id = "pct_total_foreign_hispanic",
+    label = "Percent Foreign Hispanic",
+    sharedData = data,
+    column = ~pct_total_foreign_hispanic,
+    step = 5,
+    round = TRUE,
+    sep = "",
+    ticks = FALSE
+  )
+)
+```
+
+Column {data-width=800}
+-------------------------------------
+
+### Datatable
+
+```{r filterable_table}
+DT::datatable(data)
+```
+
+### Interactive map
+
+```{r interactive_map}
+pal <- colorNumeric("YlOrRd",
+                    domain = citizenship_ethnicity_by_puma$pct_total_foreign)
+
+data %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addPolygons(fillColor = ~pal(citizenship_ethnicity_by_puma$pct_total_foreign),
+              fillOpacity = 1, 
+              weight = 0.9, 
+              smoothFactor = 0.2, 
+              stroke=TRUE,
+              color="white",
+              popup = ~ puma,
+              label = ~ puma) %>% 
+  addLegend(pal = pal,
+            values = citizenship_ethnicity_by_puma$pct_total_foreign,
+            position = "bottomright",
+            title = "Percent Total Foreign")
+```
