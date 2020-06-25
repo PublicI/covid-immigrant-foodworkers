@@ -6,16 +6,23 @@ output: html_document
 ---
 
 ```{r setup, include = F}
-knitr::opts_chunk$set(results = TRUE)
+# We want to hide the code and only see the results
+knitr::opts_chunk$set(echo = F)
+
+# We don't want to see any warnings from our code
+knitr::opts_chunk$set(warning = F)
+
+# We don't want to see any messages
+knitr::opts_chunk$set(message = F)
 ```
 
 ```{r, include = F}
-library(dplyr)
 library(ipumsr)
 library(labelled)
-library(readr)
-library(stringr)
-library(tidyr)
+library(rgdal)
+library(sf)
+library(tidyverse)
+library(tigris)
 ```
 
 ```{r set working directory}
@@ -30,9 +37,9 @@ ddi <- read_ipums_ddi("data/usa_00014.xml")
 ipums_data <- read_ipums_micro(ddi)
 
 # PUMAs
-pumas <- read_csv("data/tabula-2010_PUMA_Names.csv") %>% 
-  mutate(state_puma_code = as_factor(paste0(STATEFP, PUMA5CE)),
-         puma = `PUMA NAME`)
+pumas <- readOGR("data/ipums_puma_2010/ipums_puma_2010.shp") %>% 
+  # convert shapefile to sf object
+  st_as_sf(crs = 5070, remove = F)
 ```
 
 ```{r clean data}
@@ -164,73 +171,171 @@ high_immigrant_ind_occ_combos_records <- ipums_data_working %>%
   select(1:11)
 ```
 
-```{r group the data by PUMA}
-# Join the high immigrant industry-occupation combos record dataframe to the PUMAs dataframe
-high_immigrant_ind_occ_combos_records_pumas <- high_immigrant_ind_occ_combos_records %>% 
-  inner_join(pumas, by = "state_puma_code") %>% 
-  mutate(puma = paste0(puma, ", ", state)) %>% 
-  select(1:11, 15)
-
-# Quick spot check
-View(high_immigrant_ind_occ_combos_records_pumas %>% 
-       filter(industry == "AGR-CROP PRODUCTION" & occupation == "FFF-Other Agricultural Workers") %>% 
-       group_by(industry, occupation) %>% 
-       summarize(sum(PERWT)))
-```
-
 ```{r group the data}
-# Group the data by citizenship, ethnicity, industry, occupation and PUMA
-citizenship_ethnicity_by_ind_occ_puma <- high_immigrant_ind_occ_combos_records_pumas %>% 
-  group_by(state, puma, industry, industry_code, occupation, occupation_code, citizenship_code, ethnicity_code) %>% 
+# Group the data by citizenship, industry, occupation and PUMA
+citizenship_by_ind_occ_puma <- high_immigrant_ind_occ_combos_records %>% 
+  group_by(state, state_puma_code, industry, industry_code, occupation, occupation_code, citizenship_code) %>% 
   summarize(num_employees = sum(PERWT)) %>% 
-  pivot_wider(id_cols = c(state, puma, industry, industry_code, occupation, occupation_code),
+  pivot_wider(id_cols = c(state, state_puma_code, industry, industry_code, occupation, occupation_code),
+              names_from = c(citizenship_code),
+              values_from = num_employees,
+              names_prefix = "col_") %>% 
+  replace(is.na(.), 0) %>% 
+  mutate(native_citizen = col_0 + col_1,
+         total_foreign = col_2 + col_3,
+         naturalized_citizen = col_2,
+         non_citizen = col_3,
+         total_employees = native_citizen + total_foreign,
+         pct_native_citizen = round(native_citizen / total_employees * 100, digits = 0),
+         pct_total_foreign = round(total_foreign / total_employees * 100, digits = 0),
+         pct_naturalized_citizen = round(naturalized_citizen / total_employees * 100, digits = 0),
+         pct_non_citizen = round(non_citizen / total_employees * 100, digits = 0)) %>% 
+  select(state,
+         state_puma_code,
+         industry,
+         industry_code,
+         occupation,
+         occupation_code,
+         total_employees,
+         native_citizen,
+         total_foreign,
+         naturalized_citizen,
+         non_citizen,
+         pct_native_citizen,
+         pct_total_foreign,
+         pct_naturalized_citizen,
+         pct_non_citizen)
+
+# Group the data by citizenship, ethnicity, industry, occupation and PUMA
+citizenship_ethnicity_by_ind_occ_puma <- high_immigrant_ind_occ_combos_records %>% 
+group_by(state, state_puma_code, industry, industry_code, occupation, occupation_code, citizenship_code, ethnicity_code) %>% 
+  summarize(num_employees = sum(PERWT)) %>% 
+  pivot_wider(id_cols = c(state, state_puma_code, industry, industry_code, occupation, occupation_code),
               names_from = c(citizenship_code, ethnicity_code),
               values_from = num_employees,
               names_prefix = "col_") %>% 
   replace(is.na(.), 0) %>% 
   mutate(native_citizen_non_hispanic = col_0_0 + col_1_0,
          native_citizen_hispanic = col_0_1 + col_0_2 + col_0_3 + col_0_4 + col_1_1 + col_1_2 + col_1_3 + col_1_4,
+         total_foreign_non_hispanic = col_2_0 + col_3_0,
+         total_foreign_hispanic = col_2_1 + col_2_2 + col_2_3 + col_2_4 + col_3_1 + col_3_2 + col_3_3 + col_3_4,
          naturalized_citizen_non_hispanic = col_2_0,
          naturalized_citizen_hispanic = col_2_1 + col_2_2 + col_2_3 + col_2_4,
          non_citizen_non_hispanic = col_3_0,
          non_citizen_hispanic = col_3_1 + col_3_2 + col_3_3 + col_3_4,
-         total_employees = native_citizen_non_hispanic + native_citizen_hispanic + naturalized_citizen_non_hispanic + naturalized_citizen_hispanic + non_citizen_non_hispanic + non_citizen_hispanic,
-         native_citizen_non_hispanic_pct = round(native_citizen_non_hispanic / total_employees * 100, digits = 0),
-         native_citizen_hispanic_pct = round(native_citizen_hispanic / total_employees * 100, digits = 0),
-         naturalized_citizen_non_hispanic_pct = round(naturalized_citizen_non_hispanic / total_employees * 100, digits = 0),
-         naturalized_citizen_hispanic_pct = round(naturalized_citizen_hispanic / total_employees * 100, digits = 0),
-         non_citizen_non_hispanic_pct = round(non_citizen_hispanic / total_employees * 100, digits = 0),
-         non_citizen_hispanic_pct = round(non_citizen_hispanic / total_employees * 100, digits = 0)) %>% 
+         total_employees = native_citizen_non_hispanic + native_citizen_hispanic + total_foreign_non_hispanic + total_foreign_hispanic,
+         pct_native_citizen_non_hispanic = round(native_citizen_non_hispanic / total_employees * 100, digits = 0),
+         pct_native_citizen_hispanic = round(native_citizen_hispanic / total_employees * 100, digits = 0),
+         pct_total_foreign_non_hispanic = round(total_foreign_non_hispanic / total_employees * 100, digits = 0),
+         pct_total_foreign_hispanic = round(total_foreign_hispanic / total_employees * 100, digits = 0),
+         pct_naturalized_citizen_non_hispanic = round(naturalized_citizen_non_hispanic / total_employees * 100, digits = 0),
+         pct_naturalized_citizen_hispanic = round(naturalized_citizen_hispanic / total_employees * 100, digits = 0),
+         pct_non_citizen_non_hispanic = round(non_citizen_hispanic / total_employees * 100, digits = 0),
+         pct_non_citizen_hispanic = round(non_citizen_hispanic / total_employees * 100, digits = 0)) %>% 
   select(state,
-         puma,
+         state_puma_code,
          industry,
          industry_code,
          occupation,
          occupation_code,
-         total_employees,
          native_citizen_non_hispanic,
          native_citizen_hispanic,
+         total_foreign_non_hispanic,
+         total_foreign_hispanic,
          naturalized_citizen_non_hispanic,
          naturalized_citizen_hispanic,
          non_citizen_non_hispanic,
          non_citizen_hispanic,
-         native_citizen_non_hispanic_pct,
-         native_citizen_hispanic_pct,
-         naturalized_citizen_non_hispanic_pct,
-         naturalized_citizen_hispanic_pct,
-         non_citizen_non_hispanic_pct,
-         non_citizen_hispanic_pct)
+         pct_native_citizen_non_hispanic,
+         pct_native_citizen_hispanic,
+         pct_total_foreign_non_hispanic,
+         pct_total_foreign_hispanic,
+         pct_naturalized_citizen_non_hispanic,
+         pct_naturalized_citizen_hispanic,
+         pct_non_citizen_non_hispanic,
+         pct_non_citizen_hispanic)
+
+# Join the data
+citizenship_ethnicity_by_ind_occ_puma <- citizenship_by_ind_occ_puma %>% 
+  inner_join(citizenship_ethnicity_by_ind_occ_puma, by = c("state",
+                                                           "state_puma_code",
+                                                           "industry",
+                                                           "industry_code",
+                                                           "occupation",
+                                                           "occupation_code"))
 
 # How does it look?
 View(citizenship_ethnicity_by_ind_occ_puma %>% 
-       arrange(state, puma, industry, occupation))
+       arrange(state, state_puma_code, industry, occupation))
 
 # Quick spot check
 View(citizenship_ethnicity_by_ind_occ_puma %>% 
        filter(industry == "AGR-CROP PRODUCTION" & occupation == "FFF-Other Agricultural Workers") %>% 
        group_by(industry, occupation) %>% 
        summarize(sum(total_employees)))
+```
+
+```{r group the data by PUMA}
+# Group the data only by PUMA
+citizenship_ethnicity_by_puma <- citizenship_ethnicity_by_ind_occ_puma %>% 
+  group_by(state, state_puma_code) %>% 
+  summarize(native_citizen = sum(native_citizen),
+            total_foreign = sum(total_foreign),
+            naturalized_citizen = sum(naturalized_citizen),
+            non_citizen = sum(non_citizen),
+            total_employees = sum(total_employees),
+            pct_native_citizen = round(native_citizen / total_employees * 100, digits = 0),
+            pct_total_foreign = round(total_foreign / total_employees * 100, digits = 0),
+            pct_naturalized_citizen = round(naturalized_citizen / total_employees * 100, digits = 0),
+            pct_non_citizen = round(non_citizen / total_employees * 100, digits = 0),
+                                    native_citizen_non_hispanic = sum(native_citizen_non_hispanic),
+                                    native_citizen_hispanic = sum(native_citizen_hispanic),
+                                    total_foreign_non_hispanic = sum(total_foreign_non_hispanic),
+                                    total_foreign_hispanic = sum(total_foreign_hispanic),
+                                    naturalized_citizen_non_hispanic = sum(naturalized_citizen_non_hispanic),
+                                    naturalized_citizen_hispanic = sum(naturalized_citizen_hispanic),
+                                    non_citizen_non_hispanic = sum(non_citizen_non_hispanic),
+                                    non_citizen_hispanic = sum(non_citizen_hispanic),
+                                    pct_native_citizen_non_hispanic = round(native_citizen_non_hispanic / total_employees * 100, digits = 0),
+                                    pct_native_citizen_hispanic = round(native_citizen_hispanic / total_employees * 100, digits = 0),
+                                    pct_total_foreign_non_hispanic = round(total_foreign_non_hispanic / total_employees * 100, digits = 0),
+                                    pct_total_foreign_hispanic = round(total_foreign_hispanic / total_employees * 100, digits = 0),
+                                    pct_naturalized_citizen_non_hispanic = round(naturalized_citizen_non_hispanic / total_employees * 100, digits = 0),
+                                    pct_naturalized_citizen_hispanic = round(naturalized_citizen_hispanic / total_employees * 100, digits = 0),
+                                    pct_non_citizen_non_hispanic = round(non_citizen_non_hispanic / total_employees * 100, digits = 0),
+                                    pct_non_citizen_hispanic = round(non_citizen_hispanic / total_employees * 100, digits = 0)) %>% 
+  select(1:2,
+         7,
+         3:6,
+         8:27)
+
+# Join the citizenship ethnicity by ind occ puma dataframe  to the PUMAs
+citizenship_ethnicity_by_ind_occ_puma <- inner_join(citizenship_ethnicity_by_ind_occ_puma, pumas, by = c("state_puma_code" = "GEOID")) %>% 
+  mutate(puma = paste(Name, State, sep = ", ")) %>% 
+  select(1,
+         state_code = STATEFIP,
+         puma,
+         puma_code = state_puma_code,
+         3:31,
+         geometry)
+
+# Join the citizenship ethnicity by puma dataframe to the PUMAs
+citizenship_ethnicity_by_puma <- inner_join(citizenship_ethnicity_by_puma, pumas, by = c("state_puma_code" = "GEOID")) %>% 
+  mutate(puma = paste(Name, State, sep = ", ")) %>% 
+  select(1,
+         state_code = STATEFIP,
+         puma,
+         puma_code = state_puma_code,
+         3:27,
+         34)
+
+# Quick spot check
+View(citizenship_ethnicity_by_puma %>% 
+       filter(puma_code == "0605302"))
 
 # Export the data
-write_csv(citizenship_ethnicity_by_ind_occ_puma, "data/exported/citizenship_ethnicity_by_ind_occ_puma.csv")
+st_write(citizenship_ethnicity_by_puma, "data/exported/citizenship_ethnicity_by_puma.geojson", driver = "GeoJSON")
+st_write(citizenship_ethnicity_by_ind_occ_puma, "data/exported/citizenship_ethnicity_by_ind_occ_puma.geojson", driver = "GeoJSON")
+st_write(citizenship_ethnicity_by_puma, "data/exported/citizenship_ethnicity_by_puma.csv")
+st_write(citizenship_ethnicity_by_ind_occ_puma, "data/exported/citizenship_ethnicity_by_ind_occ_puma.csv")
 ```
