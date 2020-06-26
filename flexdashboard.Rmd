@@ -47,13 +47,15 @@ setwd("C:/Users/joeye/Desktop/covid-immigrant-foodworkers/")
 ```
 
 ```{r load_and_clean_data}
+# Import the sf data
+citizenship_ethnicity_by_puma <- read_sf("data/exported/citizenship_ethnicity_by_puma.json") %>% 
+  as("Spatial") # Convert sf object to sp object to allow map filtering
 
-citizenship_ethnicity_by_puma <- evictions_tracts_joined <-  read_sf("data/exported/citizenship_ethnicity_by_puma.json")
+# 
+sd_map <- SharedData$new(citizenship_ethnicity_by_puma)
+sd_df <- SharedData$new(as.data.frame(citizenship_ethnicity_by_puma@data), group = sd_map $groupName())
 
-# Remove names from the geometry column
-names(st_geometry(citizenship_ethnicity_by_puma)) = NULL
-
-data <- SharedData$new(citizenship_ethnicity_by_puma)
+#shared_data <- SharedData$new(citizenship_ethnicity_by_puma)
 ```
 
 Distribution of foreign-born workers in food-related industries {data-icon="ion-stats-bars"}
@@ -68,20 +70,14 @@ Column {data-width=200}
 filter_select(
   id = "state",
   label = "State",
-  sharedData = data,
+  sharedData = sd_df,
   group = ~state
-)
-filter_select(
-  id = "puma",
-  label = "PUMA",
-  sharedData = data,
-  group = ~puma
-)
+  )
 bscols(
   filter_slider(
     id = "pct_total_foreign",
     label = "Percent Foreign",
-    sharedData = data,
+    sharedData = sd_df,
     column = ~pct_total_foreign,
     step = 5,
     round = TRUE,
@@ -93,7 +89,7 @@ bscols(
   filter_slider(
     id = "pct_total_foreign_hispanic",
     label = "Percent Foreign Hispanic",
-    sharedData = data,
+    sharedData = sd_df,
     column = ~pct_total_foreign_hispanic,
     step = 5,
     round = TRUE,
@@ -109,7 +105,9 @@ Column {data-width=800}
 ### Datatable
 
 ```{r filterable_table}
-DT::datatable(data)
+sd_df %>% 
+  DT::datatable(
+    class = "compact")
 ```
 
 ### Interactive map
@@ -118,8 +116,9 @@ DT::datatable(data)
 pal <- colorNumeric("YlOrRd",
                     domain = citizenship_ethnicity_by_puma$pct_total_foreign)
 
-data %>% 
+sd_map %>% 
   leaflet() %>% 
+  setView(-98.5795, 39.8283, zoom = 3) %>% 
   addTiles() %>% 
   addPolygons(fillColor = ~pal(citizenship_ethnicity_by_puma$pct_total_foreign),
               fillOpacity = 1, 
