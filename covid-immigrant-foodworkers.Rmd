@@ -26,8 +26,8 @@ library(tigris)
 ```
 
 ```{r set working directory}
-work_dir <- "C:/Users/joeye/Desktop/covid-immigrant-foodworkers"
-setwd(work_dir)
+# work_dir <- "C:/Users/joeye/Desktop/covid-immigrant-foodworkers"
+# setwd(work_dir)
 ```
 
 ```{r import data, include = F}
