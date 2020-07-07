@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.0.0",
+    "Version": "4.0.2",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -382,10 +382,15 @@
     },
     "ipumsr": {
       "Package": "ipumsr",
-      "Version": "0.4.4",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "0cbaafd895db2751fa3129e03f2690db"
+      "Version": "0.4.4.9000",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "ipumsr",
+      "RemoteUsername": "mnpopcenter",
+      "RemoteRef": "master",
+      "RemoteSha": "4130a631bc7ed5b7444ecba88cc0a76419bf3e1a",
+      "Hash": "58b66a001b266a95b1cb511e8bc084b0"
     },
     "isoband": {
       "Package": "isoband",
