@@ -25,11 +25,6 @@ library(tidyverse)
 library(tigris)
 ```
 
-```{r set working directory}
-# work_dir <- "C:/Users/joeye/Desktop/covid-immigrant-foodworkers"
-# setwd(work_dir)
-```
-
 ```{r import data, include = F}
 # IPUMS (2014-18 ACS; population = 16 and older; employed - at work, employed - not at work)
 ipums_data <- read.table("data/usa_00014.dat")
@@ -63,6 +58,7 @@ ipums_data_working <- ipums_data %>%
   select(15, 30:37, 39, 41)
 
 # Filter to the industries we're interested in.
+# Crop production; Animal production and aquaculture; Support activities for agriculture and forestry; Animal food; grain and oilseed milling; Sugar and confectionery products; Fruit and vegetable preserving and specialty food manufacturing; Dairy product manufacturing; Animal slaughtering and processing; Bakeries and tortilla manufacturing; except retail bakeries; Seafood and other miscellaneous foods; n.e.c.; Not specified food industries
 food_worker_industries_list <- list("0170", "0180", "0290", "1070", "1080", "1090", "1170", "1180", "1270", "1280", "1290")
 
 food_worker_industries <- ipums_data_working %>% 
@@ -332,8 +328,56 @@ citizenship_ethnicity_by_puma <- inner_join(citizenship_ethnicity_by_puma, pumas
 # Quick spot check
 View(citizenship_ethnicity_by_puma %>% 
        filter(puma_code == "0605302"))
+```
 
+```{r analyze the data}
+# What is the total number of workers employed in these industries?
+sum(citizenship_ethnicity_by_ind_occ_puma$total_employees)
+
+# What is the total number of foreigners employed in these industries?
+sum(citizenship_ethnicity_by_ind_occ_puma$total_foreign)
+
+# What is the total number of Hispanic foreigners employed in these industries?
+sum(citizenship_ethnicity_by_ind_occ_puma$total_foreign_hispanic)
+
+# Which PUMAs have the highest number of immigrant foodworkers?
+citizenship_ethnicity_by_puma %>% 
+  arrange(desc(total_foreign)) %>% 
+  select(state, puma, total_employees, total_foreign, total_foreign_hispanic) %>% 
+  head(23) # 2,294 PUMAs / 100 = 22.94
+
+# And how many immigrant workers are in these PUMAs?
+citizenship_ethnicity_by_puma %>% 
+  arrange(desc(total_foreign)) %>% 
+  select(puma, total_employees, total_foreign, total_foreign_hispanic) %>% 
+  head(23) %>% 
+  ungroup() %>% 
+  summarize(sum(total_foreign)) # 2,294 PUMAs / 100 = 22.94
+
+# And how many of these foreign-born workers are Hispanic?
+citizenship_ethnicity_by_puma %>% 
+  arrange(desc(total_foreign)) %>% 
+  select(puma, total_employees, total_foreign, total_foreign_hispanic) %>% 
+  head(23) %>% 
+  ungroup() %>% 
+  summarize(sum(total_foreign_hispanic)) # 2,294 PUMAs / 100 = 22.94
+
+# What is the distribution of foreign workers in these industries by state?
+foreign_foodworkers_by_state <- citizenship_ethnicity_by_puma %>% 
+  group_by(state) %>% 
+  summarize(state_total_employees = sum(total_employees),
+            state_total_foreign = sum(total_foreign),
+            state_pct_total_foreign = round(sum(total_foreign) / sum(total_employees) * 100), 2,
+            state_total_foreign_hispanic = sum(total_foreign_hispanic),
+            state_pct_total_foreign_hispanic = round(sum(total_foreign_hispanic) / sum(total_employees) * 100), 2) %>% 
+  select(state, state_total_employees, state_total_foreign, state_pct_total_foreign, state_total_foreign_hispanic, state_pct_total_foreign_hispanic) %>% 
+  arrange(desc(state_pct_total_foreign))
+```
+
+
+```{r export the data}
 # Export the data
+st_write(foreign_foodworkers_by_state, "data/exported/foreign_foodworkers_by_state.csv")
 st_write(citizenship_ethnicity_by_puma, "data/exported/citizenship_ethnicity_by_puma.geojson", driver = "GeoJSON")
 st_write(citizenship_ethnicity_by_ind_occ_puma, "data/exported/citizenship_ethnicity_by_ind_occ_puma.geojson", driver = "GeoJSON")
 st_write(citizenship_ethnicity_by_puma, "data/exported/citizenship_ethnicity_by_puma.csv")
