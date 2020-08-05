@@ -9,6 +9,12 @@ output:
 ---
 
 ```{r setup, include = F}
+# We don't want to see any warnings from our code
+knitr::opts_chunk$set(warning = F)
+
+# We don't want to see any messages
+knitr::opts_chunk$set(message = F)
+
 # Set key file for the Census Bureau API key
 key_file <- "key_file.txt"
 ```
@@ -29,7 +35,8 @@ library(tigris)
 ## Import IPUMS
 
 ```{r, echo=FALSE, message=FALSE}
-# IPUMS (2014-18 ACS; population = 16 and older; employed - at work, employed - not at work)
+# IPUMS (2014-18 ACS; population = 16 and older; employed - at work,
+# employed - not at work)
 ipums <- read.table("data/usa_00015.dat")
 ddi <- read_ipums_ddi("data/usa_00015.xml")
 ipums <- read_ipums_micro(ddi) %>%
@@ -167,16 +174,16 @@ crosswalk
 
 ```{r}
 food_production_industries <-
-  list("0170", # Crop production;
-       "0180", # Animal production and aquaculture;
-       "0290", # Support activities for agriculture and forestry;
-       "1070", # Animal food, grain and oilseed milling;
-       "1080", # Sugar and confectionery products;
-       "1090", # Fruit and vegetable preserving and specialty food manufacturing;
-       "1170", # Dairy product manufacturing;
-       "1180", # Animal slaughtering and processing;
-       "1270", # Bakeries and tortilla manufacturing, except retail bakeries;
-       "1280", # Seafood and other miscellaneous foods; n.e.c.;
+  list("0170", # Crop production
+       "0180", # Animal production and aquaculture
+       "0290", # Support activities for agriculture and forestry
+       "1070", # Animal food, grain and oilseed milling
+       "1080", # Sugar and confectionery products
+       "1090", # Fruit and vegetable preserving and specialty food manufacturing
+       "1170", # Dairy product manufacturing
+       "1180", # Animal slaughtering and processing
+       "1270", # Bakeries and tortilla manufacturing, except retail bakeries
+       "1280", # Seafood and other miscellaneous foods; n.e.c.
        "1290") # Not specified food industries
 
 ipums_food_production <- ipums %>%
@@ -196,7 +203,8 @@ ipums_food_production_employment_by_ind_occ <-
     names_prefix = "num_employees"
   ) %>%
   replace(is.na(.), 0) %>%
-  # Exclude from our analysis ind-occ groupings with fewer than 2,500 employees nationally
+  # Exclude from our analysis ind-occ groupings
+  # with fewer than 2,500 employees nationally
   filter(num_employees >= 2500)
 ```
 
@@ -226,7 +234,7 @@ ipums_food_production_selected_occupations <-
   inner_join(ipums_food_production_employment_by_ind_occ,
              by = c("industry", "occupation")) %>%
   filter(exclude == FALSE) %>%
-  select(-num_employees,-exclude)
+  select(-num_employees, -exclude)
 
 ipums_food_production_selected_occupations
 ```
@@ -246,19 +254,6 @@ ipums_food_production_selected_occupations
 ```
 
 ## Calculate the national-level citizenship and ethnicity data for these industry-occupation pairs
-
-```{r}
-ipums_food_production_selected_occupations %>%
-  group_by(
-    industry_code,
-    industry,
-    occupation_code,
-    occupation,
-    citizenship_code,
-    ethnicity_code
-  ) %>%
-  summarize(num_employees = sum(PERWT))
-```
 
 ```{r}
 ipums_food_production_by_industry_occupation <-
@@ -281,34 +276,50 @@ ipums_food_production_by_industry_occupation <-
   replace(is.na(.), 0) %>%
   mutate(
     native_citizen_non_hispanic = col_0_0 + col_1_0,
-    native_citizen_hispanic = col_0_1 + col_0_2 + col_0_3 + col_0_4 + col_1_1 + col_1_2 + col_1_3 + col_1_4,
+    native_citizen_hispanic = col_0_1 + col_0_2 + col_0_3 + col_0_4 + col_1_1 +
+      col_1_2 + col_1_3 + col_1_4,
     total_foreign_non_hispanic = col_2_0 + col_3_0,
-    total_foreign_hispanic = col_2_1 + col_2_2 + col_2_3 + col_2_4 + col_3_1 + col_3_2 + col_3_3 + col_3_4,
+    total_foreign_hispanic = col_2_1 + col_2_2 + col_2_3 + col_2_4 + col_3_1 +
+      col_3_2 + col_3_3 + col_3_4,
     naturalized_citizen_non_hispanic = col_2_0,
     naturalized_citizen_hispanic = col_2_1 + col_2_2 + col_2_3 + col_2_4,
     non_citizen_non_hispanic = col_3_0,
     non_citizen_hispanic = col_3_1 + col_3_2 + col_3_3 + col_3_4,
-    total_employees = native_citizen_non_hispanic + native_citizen_hispanic + total_foreign_non_hispanic + total_foreign_hispanic,
-    pct_native_citizen_non_hispanic = round(native_citizen_non_hispanic / total_employees * 100, digits = 0),
-    pct_native_citizen_hispanic = round(native_citizen_hispanic / total_employees * 100, digits = 0),
-    pct_total_foreign_non_hispanic = round(total_foreign_non_hispanic / total_employees * 100, digits = 0),
-    pct_total_foreign_hispanic = round(total_foreign_hispanic / total_employees * 100, digits = 0),
+    total_employees = native_citizen_non_hispanic + native_citizen_hispanic +
+      total_foreign_non_hispanic + total_foreign_hispanic,
+    pct_native_citizen_non_hispanic = round(native_citizen_non_hispanic /
+                                              total_employees * 100, digits = 0),
+    pct_native_citizen_hispanic = round(native_citizen_hispanic /
+                                          total_employees * 100, digits = 0),
+    pct_total_foreign_non_hispanic = round(total_foreign_non_hispanic /
+                                             total_employees * 100, digits = 0),
+    pct_total_foreign_hispanic = round(total_foreign_hispanic /
+                                         total_employees * 100, digits = 0),
     pct_naturalized_citizen_non_hispanic = round(
       naturalized_citizen_non_hispanic / total_employees * 100,
       digits = 0
     ),
-    pct_naturalized_citizen_hispanic = round(naturalized_citizen_hispanic / total_employees * 100, digits = 0),
-    pct_non_citizen_non_hispanic = round(non_citizen_non_hispanic / total_employees * 100, digits = 0),
-    pct_non_citizen_hispanic = round(non_citizen_hispanic / total_employees * 100, digits = 0),
+    pct_naturalized_citizen_hispanic = round(naturalized_citizen_hispanic /
+                                               total_employees * 100, digits = 0),
+    pct_non_citizen_non_hispanic = round(non_citizen_non_hispanic /
+                                           total_employees * 100, digits = 0),
+    pct_non_citizen_hispanic = round(non_citizen_hispanic /
+                                       total_employees * 100, digits = 0),
     native_citizen = native_citizen_non_hispanic + native_citizen_hispanic,
     total_foreign = total_foreign_non_hispanic + total_foreign_hispanic,
-    naturalized_citizen = naturalized_citizen_non_hispanic + naturalized_citizen_hispanic,
+    naturalized_citizen = naturalized_citizen_non_hispanic +
+      naturalized_citizen_hispanic,
     non_citizen = non_citizen_non_hispanic + non_citizen_hispanic,
-    pct_native_citizen = round(native_citizen / total_employees * 100, digits = 0),
-    pct_total_foreign = round(total_foreign / total_employees * 100, digits = 0),
-    pct_naturalized_citizen = round(naturalized_citizen / total_employees * 100, digits = 0),
-    pct_non_citizen = round(non_citizen / total_employees * 100, digits = 0),
-    total_employment = native_citizen_non_hispanic + native_citizen_hispanic + total_foreign_non_hispanic + total_foreign_hispanic
+    pct_native_citizen = round(native_citizen /
+                                 total_employees * 100, digits = 0),
+    pct_total_foreign = round(total_foreign /
+                                total_employees * 100, digits = 0),
+    pct_naturalized_citizen = round(naturalized_citizen /
+                                      total_employees * 100, digits = 0),
+    pct_non_citizen = round(non_citizen /
+                              total_employees * 100, digits = 0),
+    total_employment = native_citizen_non_hispanic + native_citizen_hispanic +
+      total_foreign_non_hispanic + total_foreign_hispanic
   ) %>%
   select(
     industry_code,
@@ -373,34 +384,49 @@ ipums_food_production_by_puma <-
   replace(is.na(.), 0) %>%
   mutate(
     native_citizen_non_hispanic = col_0_0 + col_1_0,
-    native_citizen_hispanic = col_0_1 + col_0_2 + col_0_3 + col_0_4 + col_1_1 + col_1_2 + col_1_3 + col_1_4,
+    native_citizen_hispanic = col_0_1 + col_0_2 + col_0_3 + col_0_4 + col_1_1 +
+      col_1_2 + col_1_3 + col_1_4,
     total_foreign_non_hispanic = col_2_0 + col_3_0,
-    total_foreign_hispanic = col_2_1 + col_2_2 + col_2_3 + col_2_4 + col_3_1 + col_3_2 + col_3_3 + col_3_4,
+    total_foreign_hispanic = col_2_1 + col_2_2 + col_2_3 + col_2_4 + col_3_1 +
+      col_3_2 + col_3_3 + col_3_4,
     naturalized_citizen_non_hispanic = col_2_0,
     naturalized_citizen_hispanic = col_2_1 + col_2_2 + col_2_3 + col_2_4,
     non_citizen_non_hispanic = col_3_0,
     non_citizen_hispanic = col_3_1 + col_3_2 + col_3_3 + col_3_4,
-    total_employees = native_citizen_non_hispanic + native_citizen_hispanic + total_foreign_non_hispanic + total_foreign_hispanic,
-    pct_native_citizen_non_hispanic = round(native_citizen_non_hispanic / total_employees * 100, digits = 0),
-    pct_native_citizen_hispanic = round(native_citizen_hispanic / total_employees * 100, digits = 0),
-    pct_total_foreign_non_hispanic = round(total_foreign_non_hispanic / total_employees * 100, digits = 0),
-    pct_total_foreign_hispanic = round(total_foreign_hispanic / total_employees * 100, digits = 0),
+    total_employees = native_citizen_non_hispanic + native_citizen_hispanic +
+      total_foreign_non_hispanic + total_foreign_hispanic,
+    pct_native_citizen_non_hispanic = round(native_citizen_non_hispanic /
+                                              total_employees * 100, digits = 0),
+    pct_native_citizen_hispanic = round(native_citizen_hispanic /
+                                          total_employees * 100, digits = 0),
+    pct_total_foreign_non_hispanic = round(total_foreign_non_hispanic /
+                                             total_employees * 100, digits = 0),
+    pct_total_foreign_hispanic = round(total_foreign_hispanic /
+                                         total_employees * 100, digits = 0),
     pct_naturalized_citizen_non_hispanic = round(
       naturalized_citizen_non_hispanic / total_employees * 100,
       digits = 0
     ),
-    pct_naturalized_citizen_hispanic = round(naturalized_citizen_hispanic / total_employees * 100, digits = 0),
-    pct_non_citizen_non_hispanic = round(non_citizen_non_hispanic / total_employees * 100, digits = 0),
-    pct_non_citizen_hispanic = round(non_citizen_hispanic / total_employees * 100, digits = 0),
+    pct_naturalized_citizen_hispanic = round(naturalized_citizen_hispanic /
+                                               total_employees * 100, digits = 0),
+    pct_non_citizen_non_hispanic = round(non_citizen_non_hispanic /
+                                           total_employees * 100, digits = 0),
+    pct_non_citizen_hispanic = round(non_citizen_hispanic /
+                                       total_employees * 100, digits = 0),
     native_citizen = native_citizen_non_hispanic + native_citizen_hispanic,
     total_foreign = total_foreign_non_hispanic + total_foreign_hispanic,
-    naturalized_citizen = naturalized_citizen_non_hispanic + naturalized_citizen_hispanic,
+    naturalized_citizen = naturalized_citizen_non_hispanic +
+      naturalized_citizen_hispanic,
     non_citizen = non_citizen_non_hispanic + non_citizen_hispanic,
-    pct_native_citizen = round(native_citizen / total_employees * 100, digits = 0),
-    pct_total_foreign = round(total_foreign / total_employees * 100, digits = 0),
-    pct_naturalized_citizen = round(naturalized_citizen / total_employees * 100, digits = 0),
+    pct_native_citizen = round(native_citizen /
+                                 total_employees * 100, digits = 0),
+    pct_total_foreign = round(total_foreign /
+                                total_employees * 100, digits = 0),
+    pct_naturalized_citizen = round(naturalized_citizen /
+                                      total_employees * 100, digits = 0),
     pct_non_citizen = round(non_citizen / total_employees * 100, digits = 0),
-    total_employment_selected_industries = native_citizen_non_hispanic + native_citizen_hispanic + total_foreign_non_hispanic + total_foreign_hispanic
+    total_employment_selected_industries = native_citizen_non_hispanic +
+      native_citizen_hispanic + total_foreign_non_hispanic + total_foreign_hispanic
   ) %>%
   select(
     state_code,
@@ -480,34 +506,51 @@ ipums_food_production_by_puma_ind_occ <-
   replace(is.na(.), 0) %>%
   mutate(
     native_citizen_non_hispanic = col_0_0 + col_1_0,
-    native_citizen_hispanic = col_0_1 + col_0_2 + col_0_3 + col_0_4 + col_1_1 + col_1_2 + col_1_3 + col_1_4,
+    native_citizen_hispanic = col_0_1 + col_0_2 + col_0_3 + col_0_4 +
+      col_1_1 + col_1_2 + col_1_3 + col_1_4,
     total_foreign_non_hispanic = col_2_0 + col_3_0,
-    total_foreign_hispanic = col_2_1 + col_2_2 + col_2_3 + col_2_4 + col_3_1 + col_3_2 + col_3_3 + col_3_4,
+    total_foreign_hispanic = col_2_1 + col_2_2 + col_2_3 + col_2_4 +
+      col_3_1 + col_3_2 + col_3_3 + col_3_4,
     naturalized_citizen_non_hispanic = col_2_0,
     naturalized_citizen_hispanic = col_2_1 + col_2_2 + col_2_3 + col_2_4,
     non_citizen_non_hispanic = col_3_0,
     non_citizen_hispanic = col_3_1 + col_3_2 + col_3_3 + col_3_4,
-    total_employees = native_citizen_non_hispanic + native_citizen_hispanic + total_foreign_non_hispanic + total_foreign_hispanic,
-    pct_native_citizen_non_hispanic = round(native_citizen_non_hispanic / total_employees * 100, digits = 0),
-    pct_native_citizen_hispanic = round(native_citizen_hispanic / total_employees * 100, digits = 0),
-    pct_total_foreign_non_hispanic = round(total_foreign_non_hispanic / total_employees * 100, digits = 0),
-    pct_total_foreign_hispanic = round(total_foreign_hispanic / total_employees * 100, digits = 0),
+    total_employees = native_citizen_non_hispanic + native_citizen_hispanic +
+      total_foreign_non_hispanic + total_foreign_hispanic,
+    pct_native_citizen_non_hispanic = round(native_citizen_non_hispanic /
+                                              total_employees * 100, digits = 0),
+    pct_native_citizen_hispanic = round(native_citizen_hispanic /
+                                          total_employees * 100, digits = 0),
+    pct_total_foreign_non_hispanic = round(total_foreign_non_hispanic /
+                                             total_employees * 100, digits = 0),
+    pct_total_foreign_hispanic = round(total_foreign_hispanic /
+                                         total_employees * 100, digits = 0),
     pct_naturalized_citizen_non_hispanic = round(
       naturalized_citizen_non_hispanic / total_employees * 100,
       digits = 0
     ),
-    pct_naturalized_citizen_hispanic = round(naturalized_citizen_hispanic / total_employees * 100, digits = 0),
-    pct_non_citizen_non_hispanic = round(non_citizen_non_hispanic / total_employees * 100, digits = 0),
-    pct_non_citizen_hispanic = round(non_citizen_hispanic / total_employees * 100, digits = 0),
+    pct_naturalized_citizen_hispanic = round(naturalized_citizen_hispanic /
+                                               total_employees * 100, digits = 0),
+    pct_non_citizen_non_hispanic = round(non_citizen_non_hispanic /
+                                           total_employees * 100, digits = 0),
+    pct_non_citizen_hispanic = round(non_citizen_hispanic /
+                                       total_employees * 100, digits = 0),
     native_citizen = native_citizen_non_hispanic + native_citizen_hispanic,
     total_foreign = total_foreign_non_hispanic + total_foreign_hispanic,
-    naturalized_citizen = naturalized_citizen_non_hispanic + naturalized_citizen_hispanic,
+    naturalized_citizen = naturalized_citizen_non_hispanic +
+      naturalized_citizen_hispanic,
     non_citizen = non_citizen_non_hispanic + non_citizen_hispanic,
-    pct_native_citizen = round(native_citizen / total_employees * 100, digits = 0),
-    pct_total_foreign = round(total_foreign / total_employees * 100, digits = 0),
-    pct_naturalized_citizen = round(naturalized_citizen / total_employees * 100, digits = 0),
-    pct_non_citizen = round(non_citizen / total_employees * 100, digits = 0),
-    total_employment_selected_industries = native_citizen_non_hispanic + native_citizen_hispanic + total_foreign_non_hispanic + total_foreign_hispanic
+    pct_native_citizen = round(native_citizen /
+                                 total_employees * 100, digits = 0),
+    pct_total_foreign = round(total_foreign /
+                                total_employees * 100, digits = 0),
+    pct_naturalized_citizen = round(naturalized_citizen /
+                                      total_employees * 100, digits = 0),
+    pct_non_citizen = round(non_citizen /
+                              total_employees * 100, digits = 0),
+    total_employment_selected_industries = native_citizen_non_hispanic +
+      native_citizen_hispanic + total_foreign_non_hispanic +
+      total_foreign_hispanic
   ) %>%
   select(
     state_code,
@@ -566,17 +609,26 @@ ipums_food_production_by_puma_crosswalked_to_county <-
       total_employment_selected_industries * allocation_factor,
       digits = 0
     ),
-    native_citizen_non_hispanic = round(native_citizen_non_hispanic * allocation_factor, digits = 0),
-    native_citizen_hispanic = round(native_citizen_hispanic * allocation_factor, digits = 0),
-    total_foreign_non_hispanic = round(total_foreign_non_hispanic * allocation_factor, digits = 0),
-    total_foreign_hispanic = round(total_foreign_hispanic * allocation_factor, digits = 0),
-    naturalized_citizen_non_hispanic = round(naturalized_citizen_non_hispanic * allocation_factor, digits = 0),
-    naturalized_citizen_hispanic = round(naturalized_citizen_hispanic * allocation_factor, digits = 0),
-    non_citizen_non_hispanic = round(non_citizen_non_hispanic * allocation_factor, digits = 0),
-    non_citizen_hispanic = round(non_citizen_hispanic * allocation_factor, digits = 0),
+    native_citizen_non_hispanic = round(native_citizen_non_hispanic *
+                                          allocation_factor, digits = 0),
+    native_citizen_hispanic = round(native_citizen_hispanic *
+                                      allocation_factor, digits = 0),
+    total_foreign_non_hispanic = round(total_foreign_non_hispanic *
+                                         allocation_factor, digits = 0),
+    total_foreign_hispanic = round(total_foreign_hispanic *
+                                     allocation_factor, digits = 0),
+    naturalized_citizen_non_hispanic = round(naturalized_citizen_non_hispanic
+                                             * allocation_factor, digits = 0),
+    naturalized_citizen_hispanic = round(naturalized_citizen_hispanic
+                                         * allocation_factor, digits = 0),
+    non_citizen_non_hispanic = round(non_citizen_non_hispanic
+                                     * allocation_factor, digits = 0),
+    non_citizen_hispanic = round(non_citizen_hispanic
+                                 * allocation_factor, digits = 0),
     native_citizen = native_citizen_non_hispanic + native_citizen_hispanic,
     total_foreign = total_foreign_non_hispanic + total_foreign_hispanic,
-    naturalized_citizen = naturalized_citizen_non_hispanic + naturalized_citizen_hispanic,
+    naturalized_citizen = naturalized_citizen_non_hispanic +
+      naturalized_citizen_hispanic,
     non_citizen = non_citizen_non_hispanic + non_citizen_hispanic
   ) %>%
   select(1,
@@ -598,17 +650,26 @@ ipums_food_production_by_puma_ind_occ_crosswalked_to_county <-
       total_employment_selected_industries * allocation_factor,
       digits = 0
     ),
-    native_citizen_non_hispanic = round(native_citizen_non_hispanic * allocation_factor, digits = 0),
-    native_citizen_hispanic = round(native_citizen_hispanic * allocation_factor, digits = 0),
-    total_foreign_non_hispanic = round(total_foreign_non_hispanic * allocation_factor, digits = 0),
-    total_foreign_hispanic = round(total_foreign_hispanic * allocation_factor, digits = 0),
-    naturalized_citizen_non_hispanic = round(naturalized_citizen_non_hispanic * allocation_factor, digits = 0),
-    naturalized_citizen_hispanic = round(naturalized_citizen_hispanic * allocation_factor, digits = 0),
-    non_citizen_non_hispanic = round(non_citizen_non_hispanic * allocation_factor, digits = 0),
-    non_citizen_hispanic = round(non_citizen_hispanic * allocation_factor, digits = 0),
+    native_citizen_non_hispanic = round(native_citizen_non_hispanic
+                                        * allocation_factor, digits = 0),
+    native_citizen_hispanic = round(native_citizen_hispanic
+                                    * allocation_factor, digits = 0),
+    total_foreign_non_hispanic = round(total_foreign_non_hispanic
+                                       * allocation_factor, digits = 0),
+    total_foreign_hispanic = round(total_foreign_hispanic
+                                   * allocation_factor, digits = 0),
+    naturalized_citizen_non_hispanic = round(naturalized_citizen_non_hispanic
+                                             * allocation_factor, digits = 0),
+    naturalized_citizen_hispanic = round(naturalized_citizen_hispanic
+                                         * allocation_factor, digits = 0),
+    non_citizen_non_hispanic = round(non_citizen_non_hispanic
+                                     * allocation_factor, digits = 0),
+    non_citizen_hispanic = round(non_citizen_hispanic
+                                 * allocation_factor, digits = 0),
     native_citizen = native_citizen_non_hispanic + native_citizen_hispanic,
     total_foreign = total_foreign_non_hispanic + total_foreign_hispanic,
-    naturalized_citizen = naturalized_citizen_non_hispanic + naturalized_citizen_hispanic,
+    naturalized_citizen = naturalized_citizen_non_hispanic +
+      naturalized_citizen_hispanic,
     non_citizen = non_citizen_non_hispanic + non_citizen_hispanic
   ) %>%
   select(1,
@@ -624,12 +685,14 @@ ipums_food_production_by_puma_ind_occ_crosswalked_to_county <-
 ## Group the data by county
 
 ```{r group the data by county}
-# This step is required to deal with situations where multiple PUMAs split a single county
+# This step is required to deal with situations
+# where multiple PUMAs split a single county
 ipums_food_production_by_county <-
   ipums_food_production_by_puma_crosswalked_to_county %>%
   group_by(state_code, state, county_code, county) %>%
   summarize(
-    total_employment_selected_industries = sum(total_employment_selected_industries),
+    total_employment_selected_industries =
+      sum(total_employment_selected_industries),
     native_citizen = sum(native_citizen),
     native_citizen_non_hispanic = sum(native_citizen_non_hispanic),
     native_citizen_hispanic = sum(native_citizen_hispanic),
@@ -671,7 +734,8 @@ ipums_food_production_by_county <-
       digits = 0
     ),
     pct_naturalized_citizen_non_hispanic = round(
-      naturalized_citizen_non_hispanic / total_employment_selected_industries * 100,
+      naturalized_citizen_non_hispanic /
+        total_employment_selected_industries * 100,
       digits = 0
     ),
     pct_naturalized_citizen_hispanic = round(
@@ -705,7 +769,8 @@ write_csv(
 ## Group the data by industry and occupation and county
 
 ```{r group the data by industry and occupation and county}
-# This step is required to deal with situations where multiple PUMAs split a single county
+# This step is required to deal with situations
+# where multiple PUMAs split a single county
 ipums_food_production_by_county_ind_occ <-
   ipums_food_production_by_puma_ind_occ_crosswalked_to_county %>%
   group_by(
@@ -719,7 +784,8 @@ ipums_food_production_by_county_ind_occ <-
     occupation
   ) %>%
   summarize(
-    total_employment_selected_industries = sum(total_employment_selected_industries),
+    total_employment_selected_industries =
+      sum(total_employment_selected_industries),
     native_citizen = sum(native_citizen),
     native_citizen_non_hispanic = sum(native_citizen_non_hispanic),
     native_citizen_hispanic = sum(native_citizen_hispanic),
@@ -761,7 +827,8 @@ ipums_food_production_by_county_ind_occ <-
       digits = 0
     ),
     pct_naturalized_citizen_non_hispanic = round(
-      naturalized_citizen_non_hispanic / total_employment_selected_industries * 100,
+      naturalized_citizen_non_hispanic /
+        total_employment_selected_industries * 100,
       digits = 0
     ),
     pct_naturalized_citizen_hispanic = round(
@@ -809,7 +876,8 @@ sum(ipums_food_production_by_puma$total_foreign)
 ## What's that as a percent?
 
 ```{r}
-sum(ipums_food_production_by_puma$total_foreign) / sum(ipums_food_production_by_puma$total_employment_selected_industries) * 100
+sum(ipums_food_production_by_puma$total_foreign) /
+  sum(ipums_food_production_by_puma$total_employment_selected_industries) * 100
 ```
 
 ## How many of the jobs have a higher proportion of foreigners employed than the national average of 17.1%?
@@ -836,7 +904,8 @@ sum(ipums_food_production_by_puma$total_foreign_hispanic)
 ## What's that as a percent of all foreign workers in these industries?
 
 ```{r}
-sum(ipums_food_production_by_puma$total_foreign_hispanic) / sum(ipums_food_production_by_puma$total_foreign) * 100
+sum(ipums_food_production_by_puma$total_foreign_hispanic) /
+  sum(ipums_food_production_by_puma$total_foreign) * 100
 ```
 
 ## Which PUMAs have the highest number of immigrant foodworkers?
@@ -935,7 +1004,8 @@ ipums_food_production_by_county %>%
 foodworkers_by_state <- ipums_food_production_by_puma %>%
   group_by(state) %>%
   summarize(
-    state_total_employment_selected_industries = sum(total_employment_selected_industries),
+    state_total_employment_selected_industries =
+      sum(total_employment_selected_industries),
     state_total_foreign = sum(total_foreign),
     state_pct_total_foreign = round(
       sum(total_foreign) / sum(total_employment_selected_industries) * 100
@@ -943,7 +1013,8 @@ foodworkers_by_state <- ipums_food_production_by_puma %>%
     2,
     state_total_foreign_hispanic = sum(total_foreign_hispanic),
     state_pct_total_foreign_hispanic = round(
-      sum(total_foreign_hispanic) / sum(total_employment_selected_industries) * 100
+      sum(total_foreign_hispanic) /
+        sum(total_employment_selected_industries) * 100
     ),
     2
   ) %>%
@@ -1021,18 +1092,21 @@ red_zone
 ```
 
 ### Join with the red zone states data frame
+
 ```{r}
 foodworkers_by_state <- foodworkers_by_state %>%
   left_join(red_zone, by = "state")
 ```
 
 ### Where do the Red Zone states stand?
+
 ```{r}
 foodworkers_by_state %>%
   filter(red_zone == TRUE)
 ```
 
 ## Export the states
+
 ```{r}
 write_csv(foodworkers_by_state,
           "data/exported/foodworkers_by_state.csv")
