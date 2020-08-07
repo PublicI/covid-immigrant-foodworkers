@@ -128,7 +128,7 @@ ipums_food_production <- ipums %>%
 
 ```{r calculate employment by industry-occupation groupings and filter}
 # Calculate employment by industry-occupation grouping
-ipums_food_production_employment_by_ind_occ <- ipums_food_production %>% 
+ipums_food_production_total_employment_by_ind_occ <- ipums_food_production %>% 
   group_by(industry, occupation) %>% 
   summarize(num_employees = sum(PERWT)) %>% 
   pivot_wider(id_cols = c(industry, occupation),
@@ -139,16 +139,16 @@ ipums_food_production_employment_by_ind_occ <- ipums_food_production %>%
   filter(num_employees >= 2500)
 
 # Export the data
-write_csv(ipums_food_production_employment_by_ind_occ, "data/exported/ipums_food_production_employment_by_ind_occ.csv")
+write_csv(ipums_food_production_total_employment_by_ind_occ, "data/exported/ipums_food_production_total_employment_by_ind_occ.csv")
 ```
 
 ```{r filter the industry-occupation pairs}
 # Import data frame of food production industry-occupation pairs
-ipums_food_production_employment_by_ind_occ <- read_csv("data/ipums_food_production_employment_by_ind_occ.csv")
+ipums_food_production_total_employment_by_ind_occ <- read_csv("data/ipums_food_production_total_employment_by_ind_occ.csv")
 
 # Join the industry-occupation pairs to the ipums data and filter to just the industry-occupation pairs we want
 ipums_food_production_selected_occupations <- ipums_food_production %>% 
-  inner_join(ipums_food_production_employment_by_ind_occ, by = c("industry", "occupation")) %>% 
+  inner_join(ipums_food_production_total_employment_by_ind_occ, by = c("industry", "occupation")) %>% 
   filter(exclude == FALSE) %>% 
   select(-num_employees,
          -exclude)
@@ -508,6 +508,13 @@ sum(ipums_food_production_by_puma$total_foreign)
 # What's that as a percent?
 sum(ipums_food_production_by_puma$total_foreign) / sum(ipums_food_production_by_puma$total_employment_selected_industries) * 100
 
+# What is the national average of foreign employment?
+ipums %>% 
+  filter(citizenship_code == "2" | citizenship_code == "3") %>% 
+  summarize(sum(PERWT)) /
+ipums %>% 
+  summarize(sum(PERWT))
+
 # How many of the jobs have a higher proportion of foreigners employed than the national average of 17.1%?
 ipums_food_production_by_industry_occupation %>% 
   filter(pct_total_foreign > 17.1) %>% 
@@ -515,12 +522,41 @@ ipums_food_production_by_industry_occupation %>%
   arrange(desc(total_employment))
 ```
 
-```{r analyze employment by foreign and Hispanic}
+```{r analyze employment by non-citizen}
+# What is the total number of non-citizens employed in these industries?
+sum(ipums_food_production_by_puma$non_citizen)
+
+# What's that as a percent?
+sum(ipums_food_production_by_puma$non_citizen) / sum(ipums_food_production_by_puma$total_employment_selected_industries) * 100
+
+# What is the national average of non-citizen employment?
+ipums %>% 
+  filter(citizenship_code == "3") %>% 
+  summarize(sum(PERWT)) /
+ipums %>% 
+  summarize(sum(PERWT))
+
+# How many of the jobs have a higher proportion of foreigners employed than the national average of 8.6%?
+ipums_food_production_by_industry_occupation %>% 
+  filter(pct_non_citizen > 8.6) %>% 
+  select(industry, occupation, total_employment, pct_non_citizen, pct_non_citizen_hispanic) %>% 
+  arrange(desc(total_employment))
+```
+
+```{r analyze employment by total foreign and Hispanic}
 # What is the total number of Hispanic foreigners employed in these industries?
 sum(ipums_food_production_by_puma$total_foreign_hispanic)
 
 # What's that as a percent of all foreign workers in these industries?
 sum(ipums_food_production_by_puma$total_foreign_hispanic) / sum(ipums_food_production_by_puma$total_foreign) * 100
+```
+
+```{r analyze employment by non-citizen and Hispanic}
+# What is the total number of Hispanic non-citizens employed in these industries?
+sum(ipums_food_production_by_puma$non_citizen_hispanic)
+
+# What's that as a percent of all non-citizen workers in these industries?
+sum(ipums_food_production_by_puma$non_citizen_hispanic) / sum(ipums_food_production_by_puma$non_citizen) * 100
 ```
 
 ```{r analyze employment by puma}
