@@ -419,10 +419,6 @@ ipums_food_production_by_puma <-
   calc_percents()
 ```
 
-```{r}
-ipums_food_production_by_puma %>% select(puma_code,total_foreign)
-```
-
 ### Export the data
 
 ```{r}
@@ -528,13 +524,6 @@ ipums_food_production_by_puma_crosswalked_to_county <-
          5:17)
 ```
 
-```{r}
-ipums_food_production_by_puma_crosswalked_to_county
-```
-```{r}
-ipums_food_production_by_puma_crosswalked_to_county %>% filter(county_code == "06053") %>% select(allocation_factor, total_employees, total_foreign, total_non_citizen)
-```
-
 ### Join the employment data to the crosswalk data frame
 ```{r crosswalk the employment data from PUMAs and ind-occ pairs to counties and ind-occ pairs}
 ipums_food_production_by_puma_ind_occ_crosswalked_to_county <-
@@ -575,10 +564,6 @@ ipums_food_production_by_puma_ind_occ_crosswalked_to_county <-
          5:8,
          39:44,
          9:21)
-```
-
-```{r}
-ipums_food_production_by_puma_crosswalked_to_county
 ```
 
 ## Group the data by county
@@ -695,7 +680,7 @@ ipums_food_production_by_puma %>%
   select(
     state,
     puma,
-    total_employment_selected_industries,
+    total_employees,
     total_foreign,
     total_foreign_hispanic
   ) %>%
@@ -708,7 +693,7 @@ ipums_food_production_by_puma %>%
 ipums_food_production_by_puma %>%
   arrange(desc(total_foreign)) %>%
   select(puma,
-         total_employment_selected_industries,
+         total_employees,
          total_foreign,
          total_foreign_hispanic) %>%
   head(23) %>%
@@ -722,7 +707,7 @@ ipums_food_production_by_puma %>%
 ipums_food_production_by_puma %>%
   arrange(desc(total_foreign)) %>%
   select(puma,
-         total_employment_selected_industries,
+         total_employees,
          total_foreign,
          total_foreign_hispanic) %>%
   head(23) %>%
@@ -738,7 +723,7 @@ ipums_food_production_by_county %>%
   select(
     state,
     county,
-    total_employment_selected_industries,
+    total_employees,
     total_foreign,
     total_foreign_hispanic
   ) %>%
@@ -752,7 +737,7 @@ ipums_food_production_by_county %>%
   arrange(desc(total_foreign)) %>%
   select(
     county,
-    total_employment_selected_industries,
+    total_employees,
     total_foreign,
     total_foreign_hispanic
   ) %>%
@@ -768,7 +753,7 @@ ipums_food_production_by_county %>%
   arrange(desc(total_foreign)) %>%
   select(
     county,
-    total_employment_selected_industries,
+    total_employees,
     total_foreign,
     total_foreign_hispanic
   ) %>%
@@ -834,54 +819,6 @@ foodworkers_by_state %>%
 ```{r}
 foodworkers_by_state %>%
   summarize(sum(state_total_employment_selected_industries))
-```
-
-### Where do the "Red Zone" states stand?
-
-``` {r}
-red_zone <-
-  data.frame(
-    "state" = c(
-      "Alabama/AL",
-      "Arizona/AZ",
-      "Arkansas/AR",
-      "California/CA",
-      "Florida/FL",
-      "Georgia/GA",
-      "Idaho/ID",
-      "Iowa/IA",
-      "Kansas/KS",
-      "Louisiana/LA",
-      "Mississippi/MS",
-      "Missouri/MO",
-      "Nevada/NV",
-      "North Carolina/NC",
-      "North Dakota/ND",
-      "Oklahoma/OK",
-      "South Carolina/SC",
-      "Tennessee/TN",
-      "Texas/TX",
-      "Utah/UT",
-      "Wisconsin/WI"
-    ),
-    "red_zone" = TRUE
-  )
-
-red_zone
-```
-
-### Join with the red zone states data frame
-
-```{r}
-foodworkers_by_state <- foodworkers_by_state %>%
-  left_join(red_zone, by = "state")
-```
-
-### Where do the Red Zone states stand?
-
-```{r}
-foodworkers_by_state %>%
-  filter(red_zone == TRUE)
 ```
 
 ## Export the states
