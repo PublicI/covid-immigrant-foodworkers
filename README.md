@@ -27,7 +27,7 @@ This CSV file contains county-level data on the number, ethnicity, nativity, ind
 ### [foodworkers_by_state.csv](data/exported/foodworkers_by_state.csv)
 This CSV file contains state-level data on the number, ethnicity and nativity of workers in front-line food production roles. The data comes from Census Bureau 2018 five-year American Community Survey microdata collected by IPUMS at the University of Minnesota.
 
-## Data sources not in this repo:
+## Data not in this repo:
 
 ### usa_00015.dat
 This data extract can be created by navigating to [IPUMS USA](https://usa.ipums.org/usa/index.shtml) and selecting the 2018 five-year ACS sample with the following variables: STATEFIP, PUMA, US2018C_PUMA, US2018C_ST, PERWT, AGE, HISPAN, HISPAND, CITIZEN, EMPSTAT, EMPSTATD, OCC, IND, US2018C_INDP, US2018C_OCCP, and the following cases: AGE >= 16 and EMPSTATD = At work; Has job, not working.
