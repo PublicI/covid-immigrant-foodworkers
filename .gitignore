@@ -2,5 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-data/exported/
+data/ipums_puma_2010/
+data/tl_2019_us_county/
+data/2010_PUMA_Names
+data/usa_0015*
 key_file.txt
