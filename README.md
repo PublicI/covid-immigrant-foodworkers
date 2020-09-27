@@ -12,19 +12,19 @@ This R Makdown notebook contains code used to analyze the ethnic and nativity br
 ### [geocorr2018.csv](data/geocorr2018.csv)
 This CSV file contains the county-to-PUMA crosswalk table from the [Missouri Census Data Center](http://mcdc.missouri.edu/applications/geocorr2018.html)
 
-### [ipums_food_production_by_puma.csv](data/ipums_food_production_by_puma.csv)
+### [ipums_food_production_by_puma.csv](data/exported/ipums_food_production_by_puma.csv)
 This CSV file contains PUMA-level data on the number, ethnicity and nativity of workers in front-line food production roles. The data comes from Census Bureau 2018 five-year American Community Survey microdata collected by IPUMS at the University of Minnesota.
 
-### [ipums_food_production_by_county.csv](data/ipums_food_production_by_county.csv)
+### [ipums_food_production_by_county.csv](data/exported/ipums_food_production_by_county.csv)
 This CSV file contains county-level data on the number, ethnicity and nativity of workers in front-line food production roles. The data comes from Census Bureau 2018 five-year American Community Survey microdata collected by IPUMS at the University of Minnesota.
 
-### [ipums_food_production_by_puma_ind_occ.csv](data/ipums_food_production_by_county.csv)
+### [ipums_food_production_by_puma_ind_occ.csv](data/exported/ipums_food_production_by_county.csv)
 This CSV file contains PUMA-level data on the number, ethnicity, nativity, industry and occupation of workers in front-line food production roles. The data comes from Census Bureau 2018 five-year American Community Survey microdata collected by IPUMS at the University of Minnesota.
 
-### [ipums_food_production_by_county_ind_oc.csv](data/ipums_food_production_by_county.csv)
+### [ipums_food_production_by_county_ind_oc.csv](data/exported/ipums_food_production_by_county.csv)
 This CSV file contains county-level data on the number, ethnicity, nativity, industry and occupation of workers in front-line food production roles. The data comes from Census Bureau 2018 five-year American Community Survey microdata collected by IPUMS at the University of Minnesota.
 
-### [foodworkers_by_state.csv](data/ipums_food_production_by_county.csv)
+### [foodworkers_by_state.csv](data/exported/ipums_food_production_by_county.csv)
 This CSV file contains state-level data on the number, ethnicity and nativity of workers in front-line food production roles. The data comes from Census Bureau 2018 five-year American Community Survey microdata collected by IPUMS at the University of Minnesota.
 
 ## Data sources not in this repo:
