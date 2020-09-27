@@ -5,5 +5,6 @@
 data/ipums_puma_2010/
 data/tl_2019_us_county/
 data/2010_PUMA_Names
-data/usa_0015*
+data/usa_00015.dat
+data/usa_00015.xml
 key_file.txt
