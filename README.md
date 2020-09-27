@@ -24,7 +24,7 @@ This CSV file contains PUMA-level data on the number, ethnicity, nativity, indus
 ### [ipums_food_production_by_county_ind_oc.csv](data/exported/ipums_food_production_by_county.csv)
 This CSV file contains county-level data on the number, ethnicity, nativity, industry and occupation of workers in front-line food production roles. The data comes from Census Bureau 2018 five-year American Community Survey microdata collected by IPUMS at the University of Minnesota.
 
-### [foodworkers_by_state.csv](data/exported/ipums_food_production_by_county.csv)
+### [foodworkers_by_state.csv](data/exported/foodworkers_by_state.csv)
 This CSV file contains state-level data on the number, ethnicity and nativity of workers in front-line food production roles. The data comes from Census Bureau 2018 five-year American Community Survey microdata collected by IPUMS at the University of Minnesota.
 
 ## Data sources not in this repo:
