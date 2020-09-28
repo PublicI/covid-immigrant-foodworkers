@@ -1,6 +1,6 @@
 # covid-immigrant-foodworkers
 
-This repo contains code for the analysis in [Trump attacks them. COVID-19 threatens them. But immigrants keep the U.S. fed], a Center for Public Integrity story about the disproportionate impact of COVID-19 on immigrant foodworkers who produce the vast majority of the U.S. food supply.
+This repo contains code for the analysis in [Trump attacks them. COVID-19 threatens them. But immigrants keep the U.S. fed](https://publicintegrity.org/inequality-poverty-opportunity/immigration/immigration-employment/trump-covid-19-immigrants-food-supply-farmworkers/), a Center for Public Integrity story about the disproportionate impact of COVID-19 on immigrant foodworkers who produce the vast majority of the U.S. food supply.
 
 It was published on September 28, 2020 in partnership with Mother Jones.
 
